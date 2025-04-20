@@ -1,0 +1,261 @@
+"use client"
+
+import { useState } from "react"
+import Link from "next/link"
+import DashboardLayout from "@/components/dashboard-layout"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Search, Plus, FolderPlus, Clock, FileUp } from "lucide-react"
+
+// Sample project data
+const initialProjects = [
+  {
+    id: "project-1",
+    name: "E-commerce Dashboard",
+    description: "Redesign of the main admin dashboard for our e-commerce platform",
+    type: "Web Application",
+    screens: 5,
+    status: "active",
+    lastUpdated: "2 days ago",
+    progress: 80,
+  },
+  {
+    id: "project-2",
+    name: "Mobile Banking App",
+    description: "User interface for a new mobile banking application",
+    type: "Mobile App",
+    screens: 8,
+    status: "active",
+    lastUpdated: "5 days ago",
+    progress: 60,
+  },
+  {
+    id: "project-3",
+    name: "Travel Booking Platform",
+    description: "UI for a travel booking website with flight and hotel reservations",
+    type: "Web Application",
+    screens: 6,
+    status: "completed",
+    lastUpdated: "2 weeks ago",
+    progress: 100,
+  },
+]
+
+export default function ProjectsPage() {
+  const [projects, setProjects] = useState(initialProjects)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [newProject, setNewProject] = useState({
+    name: "",
+    description: "",
+    type: "Web Application",
+  })
+
+  const filteredProjects = projects.filter((project) => project.name.toLowerCase().includes(searchTerm.toLowerCase()))
+
+  const handleCreateProject = () => {
+    const project = {
+      id: `project-${projects.length + 1}`,
+      name: newProject.name,
+      description: newProject.description,
+      type: newProject.type,
+      screens: 0,
+      status: "active",
+      lastUpdated: "Just now",
+      progress: 0,
+    }
+
+    setProjects([project, ...projects])
+    setIsCreateDialogOpen(false)
+    setNewProject({
+      name: "",
+      description: "",
+      type: "Web Application",
+    })
+  }
+
+  return (
+    <DashboardLayout>
+      <div className="container p-6 space-y-8">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Projects</h1>
+            <p className="text-gray-500">Manage your UX audit projects</p>
+          </div>
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <FolderPlus className="h-4 w-4" />
+                Create Project
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create New Project</DialogTitle>
+                <DialogDescription>Create a new project to organize your UI screens and UX audits</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="project-name">Project Name</Label>
+                  <Input
+                    id="project-name"
+                    placeholder="E.g., E-commerce Dashboard Redesign"
+                    value={newProject.name}
+                    onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="project-type">Project Type</Label>
+                  <Select
+                    value={newProject.type}
+                    onValueChange={(value) => setNewProject({ ...newProject, type: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select project type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Web Application">Web Application</SelectItem>
+                      <SelectItem value="Mobile App">Mobile App</SelectItem>
+                      <SelectItem value="Desktop Application">Desktop Application</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="description">Project Description (Optional)</Label>
+                  <Textarea
+                    id="description"
+                    placeholder="Provide context about your project to get more tailored recommendations"
+                    rows={3}
+                    value={newProject.description}
+                    onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleCreateProject} disabled={!newProject.name}>
+                  Create Project
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        <div className="flex flex-col md:flex-row gap-4 mb-6">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Search projects..."
+              className="pl-10"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <Select defaultValue="all">
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Projects</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
+              <SelectItem value="archived">Archived</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <Card className="border-2 border-dashed border-gray-200 bg-gray-50">
+            <CardContent className="p-6 flex flex-col items-center justify-center h-full min-h-[220px]">
+              <div className="rounded-full bg-gray-100 p-3 mb-4">
+                <Plus className="h-6 w-6 text-gray-500" />
+              </div>
+              <h3 className="text-lg font-medium text-gray-700 mb-2">Create New Project</h3>
+              <p className="text-sm text-gray-500 text-center mb-4">
+                Start a new UX audit project for your application
+              </p>
+              <Button variant="outline" onClick={() => setIsCreateDialogOpen(true)}>
+                Create Project
+              </Button>
+            </CardContent>
+          </Card>
+
+          {filteredProjects.map((project) => (
+            <Card key={project.id} className="overflow-hidden">
+              <CardHeader className="pb-3">
+                <div className="flex justify-between items-start">
+                  <CardTitle className="text-lg">{project.name}</CardTitle>
+                  <Badge
+                    variant={project.status === "active" ? "outline" : "secondary"}
+                    className={
+                      project.status === "active"
+                        ? "bg-green-50 text-green-700 border-green-200"
+                        : "bg-blue-50 text-blue-700 border-blue-200"
+                    }
+                  >
+                    {project.status === "active" ? "Active" : "Completed"}
+                  </Badge>
+                </div>
+                <CardDescription className="line-clamp-2">{project.description}</CardDescription>
+              </CardHeader>
+              <CardContent className="pb-3">
+                <div className="flex items-center justify-between text-sm mb-2">
+                  <div className="flex items-center gap-1 text-gray-500">
+                    <Clock className="h-4 w-4" />
+                    <span>{project.lastUpdated}</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-gray-500">
+                    <FileUp className="h-4 w-4" />
+                    <span>{project.screens} screens</span>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-sm flex justify-between">
+                    <span>Progress</span>
+                    <span>{project.progress}%</span>
+                  </div>
+                  <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-purple-600 rounded-full" style={{ width: `${project.progress}%` }}></div>
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter className="pt-2">
+                <div className="flex gap-2 w-full">
+                  <Link href={`/dashboard/projects/${project.id}`} className="flex-1">
+                    <Button variant="outline" className="w-full">
+                      View Details
+                    </Button>
+                  </Link>
+                  <Link href={`/dashboard/projects/${project.id}/upload`} className="flex-1">
+                    <Button className="w-full gap-2">
+                      <FileUp className="h-4 w-4" />
+                      Upload UI
+                    </Button>
+                  </Link>
+                </div>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+      </div>
+    </DashboardLayout>
+  )
+}
