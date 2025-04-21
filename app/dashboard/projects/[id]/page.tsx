@@ -1,5 +1,5 @@
-"use client"
 import Link from "next/link"
+import { notFound } from "next/navigation"
 import DashboardLayout from "@/components/dashboard-layout"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -7,79 +7,38 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { FileUp, BarChart3, Settings, ArrowLeft, Clock, AlertCircle, CheckCircle } from "lucide-react"
+import { getProject } from "@/lib/actions/projects"
+import { getScreens } from "@/lib/actions/screens"
+import prisma from "@/lib/prisma"
 
-export default function ProjectDetailPage({ params }: { params: { id: string } }) {
-  // In a real app, you would fetch the project data based on the ID
-  const project = {
-    id: params.id,
-    name: "E-commerce Dashboard",
-    description: "Redesign of the main admin dashboard for our e-commerce platform",
-    type: "Web Application",
-    createdAt: "April 15, 2025",
-    lastUpdated: "2 days ago",
-    status: "active",
-    progress: 80,
-    screens: [
-      {
-        id: "screen-1",
-        name: "Homepage",
-        uploadedAt: "April 15, 2025",
-        status: "analyzed",
-        issues: 4,
-        thumbnail: "/placeholder.svg?height=200&width=300&text=Homepage",
+export default async function ProjectDetailPage({ params }: { params: { id: string } }) {
+  const project = await getProject(params.id)
+
+  if (!project) {
+    notFound()
+  }
+
+  const screens = await getScreens(params.id)
+
+  // Get issue counts
+  const issueCountsPromise = prisma.issue.groupBy({
+    by: ["severity"],
+    where: {
+      screen: {
+        projectId: params.id,
       },
-      {
-        id: "screen-2",
-        name: "Product Page",
-        uploadedAt: "April 16, 2025",
-        status: "analyzed",
-        issues: 3,
-        thumbnail: "/placeholder.svg?height=200&width=300&text=Product",
-      },
-      {
-        id: "screen-3",
-        name: "Checkout",
-        uploadedAt: "April 17, 2025",
-        status: "analyzed",
-        issues: 5,
-        thumbnail: "/placeholder.svg?height=200&width=300&text=Checkout",
-      },
-      {
-        id: "screen-4",
-        name: "User Profile",
-        uploadedAt: "April 18, 2025",
-        status: "analyzed",
-        issues: 2,
-        thumbnail: "/placeholder.svg?height=200&width=300&text=Profile",
-      },
-      {
-        id: "screen-5",
-        name: "Settings",
-        uploadedAt: "April 19, 2025",
-        status: "analyzed",
-        issues: 1,
-        thumbnail: "/placeholder.svg?height=200&width=300&text=Settings",
-      },
-    ],
-    issues: {
-      critical: 3,
-      moderate: 6,
-      minor: 3,
     },
-    reports: [
-      {
-        id: "report-1",
-        name: "Initial UX Audit",
-        date: "April 17, 2025",
-        screens: 3,
-      },
-      {
-        id: "report-2",
-        name: "Follow-up Analysis",
-        date: "April 19, 2025",
-        screens: 2,
-      },
-    ],
+    _count: {
+      id: true,
+    },
+  })
+
+  const issueCountsResult = await issueCountsPromise
+
+  const issueCounts = {
+    critical: issueCountsResult.find((i) => i.severity === "CRITICAL")?._count.id || 0,
+    moderate: issueCountsResult.find((i) => i.severity === "MODERATE")?._count.id || 0,
+    minor: issueCountsResult.find((i) => i.severity === "MINOR")?._count.id || 0,
   }
 
   return (
@@ -123,7 +82,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                 <div className="text-3xl font-bold">{project.progress}%</div>
                 <div className="flex items-center gap-1 text-sm text-gray-500">
                   <Clock className="h-4 w-4" />
-                  <span>Last updated {project.lastUpdated}</span>
+                  <span>Last updated {new Date(project.updatedAt).toLocaleDateString()}</span>
                 </div>
               </div>
               <Progress value={project.progress} className="h-2 mt-2" />
@@ -135,7 +94,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
               <CardTitle className="text-sm font-medium text-gray-500">UI Screens</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{project.screens.length}</div>
+              <div className="text-3xl font-bold">{screens.length}</div>
               <p className="text-sm text-gray-500 mt-1">Screens uploaded and analyzed</p>
             </CardContent>
           </Card>
@@ -150,21 +109,21 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                   <AlertCircle className="h-4 w-4 text-red-500" />
                   <span className="text-sm">Critical</span>
                 </div>
-                <span className="font-bold">{project.issues.critical}</span>
+                <span className="font-bold">{issueCounts.critical}</span>
               </div>
               <div className="flex items-center justify-between mt-2">
                 <div className="flex items-center gap-2">
                   <AlertCircle className="h-4 w-4 text-amber-500" />
                   <span className="text-sm">Moderate</span>
                 </div>
-                <span className="font-bold">{project.issues.moderate}</span>
+                <span className="font-bold">{issueCounts.moderate}</span>
               </div>
               <div className="flex items-center justify-between mt-2">
                 <div className="flex items-center gap-2">
                   <AlertCircle className="h-4 w-4 text-blue-500" />
                   <span className="text-sm">Minor</span>
                 </div>
-                <span className="font-bold">{project.issues.minor}</span>
+                <span className="font-bold">{issueCounts.minor}</span>
               </div>
             </CardContent>
           </Card>
@@ -193,35 +152,34 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                 </Card>
               </Link>
 
-              {project.screens.map((screen) => (
+              {screens.map((screen) => (
                 <Card key={screen.id}>
                   <CardContent className="p-0">
                     <div className="relative">
                       <img
-                        src={screen.thumbnail || "/placeholder.svg"}
+                        src={screen.imageUrl || "/placeholder.svg"}
                         alt={screen.name}
                         className="w-full h-48 object-cover"
                       />
                       <div className="absolute top-2 right-2">
-                        <Badge
-                          variant={screen.issues > 3 ? "destructive" : screen.issues > 1 ? "warning" : "success"}
-                          className="flex items-center gap-1"
-                        >
+                        <Badge variant="destructive" className="flex items-center gap-1">
                           <AlertCircle className="h-3 w-3" />
-                          {screen.issues} issues
+                          {screen.issues.length} issues
                         </Badge>
                       </div>
                     </div>
                     <div className="p-4">
                       <h3 className="font-medium">{screen.name}</h3>
-                      <p className="text-sm text-gray-500 mt-1">Uploaded on {screen.uploadedAt}</p>
+                      <p className="text-sm text-gray-500 mt-1">
+                        Uploaded on {new Date(screen.createdAt).toLocaleDateString()}
+                      </p>
                       <div className="flex justify-between items-center mt-3">
                         <Badge
                           variant="outline"
                           className="bg-green-50 text-green-700 border-green-200 flex items-center gap-1"
                         >
                           <CheckCircle className="h-3 w-3" />
-                          Analyzed
+                          {screen.status}
                         </Badge>
                         <Link href={`/dashboard/projects/${project.id}/screens/${screen.id}`}>
                           <Button variant="outline" size="sm">
@@ -246,9 +204,9 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                         <h3 className="text-lg font-semibold">{report.name}</h3>
                         <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">
                           <Clock className="h-4 w-4" />
-                          <span>{report.date}</span>
+                          <span>{new Date(report.createdAt).toLocaleDateString()}</span>
                           <span className="mx-1">•</span>
-                          <span>{report.screens} screens</span>
+                          <span>{report.issues.length} issues found</span>
                         </div>
                       </div>
 
@@ -287,53 +245,24 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
-                  <div className="flex gap-4">
-                    <div className="mt-1 w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
-                      <FileUp className="h-4 w-4 text-purple-600" />
+                  {screens.map((screen) => (
+                    <div key={screen.id} className="flex gap-4">
+                      <div className="mt-1 w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
+                        <FileUp className="h-4 w-4 text-purple-600" />
+                      </div>
+                      <div>
+                        <p className="font-medium">{screen.name} screen uploaded and analyzed</p>
+                        <p className="text-sm text-gray-500">{new Date(screen.createdAt).toLocaleString()}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium">Settings screen uploaded</p>
-                      <p className="text-sm text-gray-500">April 19, 2025 at 2:30 PM</p>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-4">
-                    <div className="mt-1 w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                      <CheckCircle className="h-4 w-4 text-green-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium">Analysis completed for User Profile screen</p>
-                      <p className="text-sm text-gray-500">April 18, 2025 at 4:15 PM</p>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-4">
-                    <div className="mt-1 w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
-                      <FileUp className="h-4 w-4 text-purple-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium">User Profile screen uploaded</p>
-                      <p className="text-sm text-gray-500">April 18, 2025 at 10:45 AM</p>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-4">
-                    <div className="mt-1 w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                      <BarChart3 className="h-4 w-4 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium">Initial UX Audit report generated</p>
-                      <p className="text-sm text-gray-500">April 17, 2025 at 3:20 PM</p>
-                    </div>
-                  </div>
-
+                  ))}
                   <div className="flex gap-4">
                     <div className="mt-1 w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
                       <CheckCircle className="h-4 w-4 text-green-600" />
                     </div>
                     <div>
                       <p className="font-medium">Project created</p>
-                      <p className="text-sm text-gray-500">April 15, 2025 at 9:00 AM</p>
+                      <p className="text-sm text-gray-500">{new Date(project.createdAt).toLocaleString()}</p>
                     </div>
                   </div>
                 </div>

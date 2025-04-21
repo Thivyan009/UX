@@ -12,12 +12,27 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Zap, LayoutDashboard, FileUp, BarChart3, Settings, LogOut, Menu, FolderPlus } from "lucide-react"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { getCurrentUser, logout } from "@/lib/actions/auth"
 
 interface DashboardLayoutProps {
   children: ReactNode
 }
 
-export default function DashboardLayout({ children }: DashboardLayoutProps) {
+export default async function DashboardLayout({ children }: DashboardLayoutProps) {
+  const user = await getCurrentUser()
+
+  if (!user) {
+    return null
+  }
+
+  const userInitials = user.name
+    ? user.name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+    : "U"
+
   return (
     <div className="min-h-screen flex flex-col">
       <header className="border-b">
@@ -85,13 +100,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                   <Avatar className="h-10 w-10">
-                    <AvatarImage src="/placeholder.svg?height=40&width=40" alt="User" />
-                    <AvatarFallback>JD</AvatarFallback>
+                    <AvatarImage src={user.image || "/placeholder.svg?height=40&width=40"} alt={user.name || "User"} />
+                    <AvatarFallback>{userInitials}</AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56" align="end">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuLabel>{user.name || user.email}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>
                   <Link href="/dashboard/profile" className="flex w-full">
@@ -105,10 +120,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>
-                  <Link href="/login" className="flex w-full items-center">
+                  <form action={logout} className="flex w-full items-center">
                     <LogOut className="mr-2 h-4 w-4" />
-                    <span>Log out</span>
-                  </Link>
+                    <button type="submit" className="w-full text-left">
+                      Log out
+                    </button>
+                  </form>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
