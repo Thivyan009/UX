@@ -1,68 +1,69 @@
 import * as React from "react"
-
+import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
-const Toast = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement> & {
-    variant?: "default" | "destructive"
-  }
->(({ className, children, variant = "default", ...props }, ref) => {
-  return (
-    <div
-      ref={ref}
-      className={cn(
-        "group relative flex w-full items-center justify-between space-x-4 overflow-hidden rounded-md border p-4 shadow-sm transition-all data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[state=closed]:animate-out data-[state=closed]:fade-out-80 data-[state=closed]:slide-out-to-right-full data-[state=open]:animate-in data-[state=open]:fade-in-90 data-[state=open]:slide-in-from-right-full",
-        variant === "destructive" && "border-destructive bg-destructive text-destructive-foreground",
-        className,
-      )}
-      {...props}
-    >
-      {children}
-    </div>
-  )
+const toastVariants = cva(
+  "group pointer-events-auto relative flex w-full items-center justify-between space-x-2 overflow-hidden rounded-md border p-4 shadow-lg transition-all",
+  {
+    variants: {
+      variant: {
+        default: "bg-background border",
+        destructive: "destructive group border-destructive bg-destructive text-destructive-foreground",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+    },
+  },
+)
+
+export interface ToastProps extends React.HTMLAttributes<HTMLDivElement>, VariantProps<typeof toastVariants> {}
+
+export const Toast = React.forwardRef<HTMLDivElement, ToastProps>(({ className, variant, ...props }, ref) => {
+  return <div ref={ref} className={cn(toastVariants({ variant }), className)} {...props} />
 })
 Toast.displayName = "Toast"
 
-const ToastTitle = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLParagraphElement>>(
-  ({ className, ...props }, ref) => {
-    return <p ref={ref} className={cn("text-sm font-semibold [&+div]:text-muted-foreground", className)} {...props} />
-  },
+export const ToastTitle = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => <div ref={ref} className={cn("text-sm font-semibold", className)} {...props} />,
 )
 ToastTitle.displayName = "ToastTitle"
 
-const ToastDescription = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLParagraphElement>>(
-  ({ className, ...props }, ref) => {
-    return <div ref={ref} className={cn("text-sm opacity-70", className)} {...props} />
-  },
+export const ToastDescription = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => <div ref={ref} className={cn("text-sm opacity-90", className)} {...props} />,
 )
 ToastDescription.displayName = "ToastDescription"
 
-const ToastClose = React.forwardRef<HTMLButtonElement, React.HTMLAttributes<HTMLButtonElement>>(
-  ({ className, ...props }, ref) => {
-    return (
-      <button
-        ref={ref}
-        className={cn(
-          "absolute right-2 top-2 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary",
-          className,
-        )}
-        {...props}
+export const ToastClose = React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttributes<HTMLButtonElement>>(
+  ({ className, ...props }, ref) => (
+    <button
+      ref={ref}
+      className={cn(
+        "absolute right-1 top-1 rounded-md p-1 text-foreground/50 opacity-0 transition-opacity hover:text-foreground focus:opacity-100 focus:outline-none group-hover:opacity-100",
+        className,
+      )}
+      toast-close=""
+      {...props}
+    >
+      <span className="sr-only">Close</span>
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="h-4 w-4"
       >
-        Close
-      </button>
-    )
-  },
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    </button>
+  ),
 )
 ToastClose.displayName = "ToastClose"
 
-export type ToastProps = {
-  open?: boolean
-  onOpenChange?: (open: boolean) => void
-  autoClose?: number
-  variant?: "default" | "destructive"
-}
-
-export type ToastActionElement = React.ReactNode
-
-export { Toast, ToastTitle, ToastDescription, ToastClose }
+export type ToastActionElement = React.ReactElement
