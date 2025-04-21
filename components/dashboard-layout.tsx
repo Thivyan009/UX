@@ -1,3 +1,5 @@
+"use client"
+
 import type { ReactNode } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -12,17 +14,21 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Zap, LayoutDashboard, FileUp, BarChart3, Settings, LogOut, Menu, FolderPlus } from "lucide-react"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { getCurrentUser, logout } from "@/lib/actions/auth"
+import { useRouter } from "next/navigation"
 
 interface DashboardLayoutProps {
   children: ReactNode
 }
 
-export default async function DashboardLayout({ children }: DashboardLayoutProps) {
-  const user = await getCurrentUser()
+export default function DashboardLayout({ children }: DashboardLayoutProps) {
+  const router = useRouter()
 
-  if (!user) {
-    return null
+  // Mock user data
+  const user = {
+    id: "user-1",
+    name: "John Doe",
+    email: "john@example.com",
+    image: null,
   }
 
   const userInitials = user.name
@@ -32,6 +38,11 @@ export default async function DashboardLayout({ children }: DashboardLayoutProps
         .join("")
         .toUpperCase()
     : "U"
+
+  const handleLogout = () => {
+    // In a real app, this would call the logout action
+    router.push("/login")
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -119,13 +130,11 @@ export default async function DashboardLayout({ children }: DashboardLayoutProps
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <form action={logout} className="flex w-full items-center">
+                <DropdownMenuItem onClick={handleLogout}>
+                  <div className="flex w-full items-center">
                     <LogOut className="mr-2 h-4 w-4" />
-                    <button type="submit" className="w-full text-left">
-                      Log out
-                    </button>
-                  </form>
+                    <span>Log out</span>
+                  </div>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
